@@ -1,59 +1,64 @@
-function onRender()
-  for i, player in pairs(game.Players:GetChildren()) do
-    if player ~= game.Players.LocalPlayer then
-      local humanoid = player:FindFirstChildOfClass("Humanoid")
-      if humanoid then
-        local head = humanoid:FindFirstChild("Head")
-        local torso = humanoid:FindFirstChild("Torso")
-        if head and torso then
-          local headPos = head.Position
-          local torsoPos = torso.Position
-          local centerPos = (headPos + torsoPos) / 2
-          drawBox(centerPos, Vector3.new(1, 1, 1), Color3.green)
-        end
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+local UIS = game:GetService("UIS")
+
+-- Variables
+local aimbotActive = false
+local targetPlayer = nil
+
+-- Función para encontrar el jugador más cercano
+function FindClosestPlayer()
+  local closestPlayer = nil
+  local closestDistance = math.huge
+
+  for _, player in ipairs(Players:GetPlayers()) do
+    if player ~= LocalPlayer and player.Character then
+      local distance = (player.Character.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
+      if distance < closestDistance then
+        closestDistance = distance
+        closestPlayer = player
       end
     end
   end
+
+  return closestPlayer
 end
 
-function drawBox(position, size, color)
-  local x, y, z = position.x, position.y, position.z
-  local sx, sy, sz = size.x, size.y, size.z
-  local vertices = {
-    {x - sx, y - sy, z - sz},
-    {x + sx, y - sy, z - sz},
-    {x + sx, y + sy, z - sz},
-    {x - sx, y + sy, z - sz},
-    {x - sx, y - sy, z + sz},
-    {x + sx, y - sy, z + sz},
-    {x + sx, y + sy, z + sz},
-    {x - sx, y + sy, z + sz},
-  }
-  for i = 1, #vertices do
-    local v1 = vertices[i]
-    local v2 = vertices[i % #vertices + 1]
-    drawLine(v1, v2, color)
+-- Función para actualizar el objetivo del aimbot
+function UpdateTarget()
+  targetPlayer = FindClosestPlayer()
+end
+
+-- Función para el aimbot
+function Aimbot()
+  if targetPlayer and targetPlayer.Character and not targetPlayer.Character:FindFirstChild("Head") then
+    local targetPosition = targetPlayer.Character.HumanoidRootPart.Position + Vector3.new(0, 1, 0)
+    Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetPosition)
   end
 end
 
-function drawLine(start, end, color)
-  local dx = end.x - start.x
-  local dy = end.y - start.y
-  local dz = end.z - start.z
-  local length = math.sqrt(dx^2 + dy^2 + dz^2)
-  local dir = Vector3.new(dx, dy, dz) / length
-  local offset = 0.05
-  local vertices = {
-    start + dir * offset,
-    start - dir * offset,
-    end - dir * offset,
-    end + dir * offset,
-  }
-  for i = 1, #vertices do
-    local v1 = vertices[i]
-    local v2 = vertices[i % #vertices + 1]
-    render.DrawLine(v1, v2, color, 2)
+-- Función para la casilla de desactivación
+function CreateToggleItem()
+  local item = Instance.new("Tool")
+  item.Name = "Desactivar Aimbot"
+  item.Parent = LocalPlayer.Backpack
+  item.Activated:Connect(function()
+    aimbotActive = not aimbotActive
+  end)
+end
+
+-- Inicialización
+CreateToggleItem()
+
+-- Bucle principal
+while wait() do
+  if aimbotActive then
+    UpdateTarget()
+    Aimbot()
   end
 end
 
-game:GetService("RunService").RenderStepped:Connect(onRender)
+-- Mensaje de script
+print("Script by KOBITA")
